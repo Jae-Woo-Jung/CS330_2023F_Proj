@@ -1,0 +1,5 @@
+(perf-pf-simple) Time elapsed : 27920 ms, Memory used : 4104 frames
+(perf-pf-reverse) Time elapsed : 37330 ms, Memory used : 4104 frames
+(perf-pf-sparse) Time elapsed : 7190 ms, Memory used : 1032 frames
+(perf-cow-anon) Time elapsed : 47640 ms, Memory used : 8208 frames
+(perf-cow-mmap) Time elapsed : 40430 ms, Memory used : 1972 frames

@@ -43,6 +43,34 @@ init_pool (struct pool *p, void **bm_base, uint64_t start, uint64_t end);
 
 static bool page_from_pool (const struct pool *, void *page);
 
+int memstat_used;
+int memstat_peak;
+struct lock memstat_lock;
+
+static void memstat_init(void) {
+	memstat_used = 0;
+	memstat_peak = 0;
+	lock_init(&memstat_lock);
+}
+
+static void memstat_inc(int cnt) {
+	lock_acquire(&memstat_lock);
+	memstat_used += cnt;
+	if (memstat_used > memstat_peak) {
+		memstat_peak = memstat_used;
+#ifdef USERPROG
+		update_stat ();
+#endif
+	}
+	lock_release(&memstat_lock);
+}
+
+static void memstat_dec(int cnt) {
+	lock_acquire(&memstat_lock);
+	memstat_used -= cnt;
+	lock_release(&memstat_lock);
+}
+
 /* multiboot info */
 struct multiboot_info {
 	uint32_t flags;
@@ -250,6 +278,7 @@ palloc_init (void) {
 	printf ("\text_mem: 0x%llx ~ 0x%llx (Usable: %'llu kB)\n",
 		  ext_mem.start, ext_mem.end, ext_mem.size / 1024);
 	populate_pools (&base_mem, &ext_mem);
+	memstat_init();
 	return ext_mem.end;
 }
 
@@ -281,6 +310,9 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt) {
 			PANIC ("palloc_get: out of pages");
 	}
 
+	if (flags & PAL_USER)
+		memstat_inc (page_cnt);
+
 	return pages;
 }
 
@@ -308,8 +340,10 @@ palloc_free_multiple (void *pages, size_t page_cnt) {
 
 	if (page_from_pool (&kernel_pool, pages))
 		pool = &kernel_pool;
-	else if (page_from_pool (&user_pool, pages))
+	else if (page_from_pool (&user_pool, pages)) {
+		memstat_dec (page_cnt);
 		pool = &user_pool;
+	}
 	else
 		NOT_REACHED ();
 
@@ -355,4 +389,12 @@ page_from_pool (const struct pool *pool, void *page) {
 	size_t start_page = pg_no (pool->base);
 	size_t end_page = start_page + bitmap_size (pool->used_map);
 	return page_no >= start_page && page_no < end_page;
+}
+
+int memstat_get(void) {
+	return memstat_used;
+}
+
+int memstat_get_peak(void) {
+	return memstat_peak;
 }

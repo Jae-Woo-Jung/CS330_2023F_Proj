@@ -1,0 +1,5 @@
+(perf-pf-simple)	T	f	4620	h	5390	M	f	4310	h	4925
+(perf-pf-reverse)	T	f	4692	h	5474	M	f	4310	h	4925
+(perf-pf-sparse)	T	f	1200	h	1400	M	f	1084	h	1239
+(perf-cow-anon)	T	f	4728	h	5516	M	f	4326	h	4944
+(perf-cow-mmap)	T	f	1608	h	1876	M	f	1053	h	1203

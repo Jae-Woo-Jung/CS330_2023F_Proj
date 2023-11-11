@@ -4,11 +4,13 @@ include $(patsubst %,$(SRCDIR)/%/Make.tests,$(TEST_SUBDIRS))
 
 PROGS = $(foreach subdir,$(TEST_SUBDIRS),$($(subdir)_PROGS))
 TESTS = $(foreach subdir,$(TEST_SUBDIRS),$($(subdir)_TESTS))
+PERF_TESTS = $(foreach subdir,$(PERF_TEST_SUBDIRS),$($(subdir)_TESTS))
 EXTRA_GRADES = $(foreach subdir,$(TEST_SUBDIRS),$($(subdir)_EXTRA_GRADES))
 
 OUTPUTS = $(addsuffix .output,$(TESTS) $(EXTRA_GRADES))
 ERRORS = $(addsuffix .errors,$(TESTS) $(EXTRA_GRADES))
 RESULTS = $(addsuffix .result,$(TESTS) $(EXTRA_GRADES))
+PERF_RESULTS = $(addsuffix .result,$(PERF_TESTS))
 
 ifdef PROGS
 include ../../Makefile.userprog
@@ -34,6 +36,19 @@ check:: results
 		echo "$$FAILURES of $$COUNT tests failed.";		  \
 		exit 1;							  \
 	fi
+
+gradescope:: measure
+	$(SRCDIR)/tests/make-gradescope $< $(BASELINE_FILE) $(REFERENCE_FILE) $(PERF_GRADING_FILE) | tee $@
+
+measure: $(RESULTS)
+	@for d in $(PERF_TESTS); do			\
+		egrep "Time elapsed" $$d.output; 						\
+	done > $@
+
+perf: $(PERF_RESULTS)
+	@for d in $(PERF_TESTS); do			\
+		egrep "Time elapsed" $$d.output; 						\
+	done > $@
 
 results: $(RESULTS)
 	@for d in $(TESTS) $(EXTRA_GRADES); do			\

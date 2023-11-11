@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/interrupt.h"
+#include "threads/synch.h"
 #ifdef VM
 #include "vm/vm.h"
 #endif
@@ -91,17 +92,48 @@ struct thread {
 	enum thread_status status;          /* Thread state. */
 	char name[16];                      /* Name (for debugging purposes). */
 	int priority;                       /* Priority. */
+	int nice;
+	int recent_cpu;
+
+	int donated_priority;
+	struct list holding_locks;
+
+	struct lock *waiting_lock;
+	struct semaphore *waiting_sema;
+	struct condition *waiting_cond;
+	struct list_elem *cond_elem;
+	// struct list_elem lock_elem;
+
+	int64_t wakeup_tick;
+	struct list_elem sleep_elem;
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem;              /* List element. */
 
+	struct list_elem active_elem;
+
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
 	uint64_t *pml4;                     /* Page map level 4 */
+	int exit_status;
+	struct list *fd_list;
+	struct list child_list;
+	struct list_elem child_elem;
+	struct intr_frame parent_if;
+	struct semaphore _do_fork_sema;
+	struct thread *parent;
+	struct file *running_file;
+	struct semaphore wait_status_sema;
+	struct semaphore exit_child_sema;
 #endif
+
 #ifdef VM
 	/* Table for whole virtual memory owned by thread. */
 	struct supplemental_page_table spt;
+#endif
+
+#ifdef EFILESYS
+	struct dir *working_dir;
 #endif
 
 	/* Owned by thread.c. */
@@ -130,11 +162,16 @@ struct thread *thread_current (void);
 tid_t thread_tid (void);
 const char *thread_name (void);
 
+void add_to_ready_list (struct thread *t);
+
 void thread_exit (void) NO_RETURN;
+void thread_yield_with_priority (void);
 void thread_yield (void);
 
 int thread_get_priority (void);
 void thread_set_priority (int);
+
+int get_thread_priority (struct thread *);
 
 int thread_get_nice (void);
 void thread_set_nice (int);
@@ -142,5 +179,26 @@ int thread_get_recent_cpu (void);
 int thread_get_load_avg (void);
 
 void do_iret (struct intr_frame *tf);
+
+void update_next_wakeup(int64_t ticks);
+int64_t get_next_wakeup(void);
+void sleep_until(int64_t ticks);
+void awake_threads(int64_t ticks);
+
+bool cmp_thread_priority_mlfqs (const struct list_elem *x, const struct list_elem *y, void *aux UNUSED);
+bool test_priority_mlfqs (void);
+
+bool cmp_donator_priority(const struct list_elem *x, const struct list_elem *y, void *aux UNUSED);
+void donate_priority(void);
+void remove_donators_for(struct lock *lock);
+void update_priority (void);
+
+void calc_priority_for (struct thread *t);
+void calc_recent_cpu_for (struct thread *t);
+void calc_load_avg (void);
+
+void increase_curr_recent_cpu (void);
+void calc_recent_cpu_all (void);
+void calc_priority_all(void);
 
 #endif /* threads/thread.h */

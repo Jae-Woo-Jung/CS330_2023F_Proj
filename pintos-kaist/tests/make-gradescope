@@ -1,0 +1,102 @@
+#! /usr/bin/perl
+
+use strict;
+use warnings;
+
+@ARGV == 4 || die;
+my ($measure_file, $baseline_file, $reference_file, $grading_file) = @ARGV;
+
+# Read statistics from $results_file.
+open (MEASURE, '<', $measure_file) || die "$measure_file: open: $!\n";
+my (%time_stat, %memory_stat);
+while (<MEASURE>) {
+	if (/\(([^)]+)\) Time elapsed : (\d+) ms, Memory used : (\d+) frames/) {
+    	my ($test, $time, $memory) = ($1, $2, $3);
+	    $time_stat{$test} = $time;
+		$memory_stat{$test} = $memory;
+	}
+}
+close MEASURE;
+
+# Read statistics from $baseline_file.
+open (MEASURE_BASE, '<', $baseline_file) || die "$baseline_file: open: $!\n";
+my (%time_stat_base, %memory_stat_base);
+while (<MEASURE_BASE>) {
+	if (/\(([^)]+)\) Time elapsed : (\d+) ms, Memory used : (\d+) frames/) {
+    	my ($test, $time, $memory) = ($1, $2, $3);
+	    $time_stat_base{$test} = $time;
+		$memory_stat_base{$test} = $memory;
+	}
+}
+close MEASURE_BASE;
+
+# Read statistics from $reference_file.
+open (MEASURE_REF, '<', $reference_file) || die "$reference_file: open: $!\n";
+my (%time_stat_ref, %memory_stat_ref);
+while (<MEASURE_REF>) {
+	if (/\(([^)]+)\) Time elapsed : (\d+) ms, Memory used : (\d+) frames/) {
+    	my ($test, $time, $memory) = ($1, $2, $3);
+	    $time_stat_ref{$test} = $time;
+		$memory_stat_ref{$test} = $memory;
+	}
+}
+close MEASURE_REF;
+
+# Calculate scores from $grading_file
+open (GRADING, '<', $grading_file) || die "$grading_file: open: $!\n";
+my $total_score = 0;
+my (%time_scores, %memory_scores);
+while (<GRADING>) {
+	if (/\(([^)]+)\)\tT\tf\t(\d+)\th\t(\d+)\tM\tf\t(\d+)\th\t(\d+)/) {
+		my ($test, $tf, $th, $mf, $mh) = ($1, $2, $3, $4, $5);
+
+		$time_scores{$test} = 0;
+		$memory_scores{$test} = 0;
+
+		if ($time_stat{$test} <= $tf) {
+			$time_scores{$test} = 10;
+		} elsif ($time_stat{$test} <= $th) {
+			$time_scores{$test} = 5;
+		}
+		if ($memory_stat{$test} <= $mf) {
+			$memory_scores{$test} = 10;
+		} elsif ($memory_stat{$test} <= $mh) {
+			$memory_scores{$test} = 5;
+		}
+
+		$total_score += $time_scores{$test} + $memory_scores{$test};
+	}
+}
+close GRADING;
+
+# Print scores
+print "SCORE\n";
+print "=====\n";
+foreach my $name (keys (%time_stat)) {
+	my $time_pct = $time_stat{$name} / $time_stat_base{$name} * 100;
+	my $memory_pct = $memory_stat{$name} / $memory_stat_base{$name} * 100;
+
+	printf ("%d/10 (%.2f%%)\t- $name-TIME\n", $time_scores{$name}, $time_pct);
+	printf ("%d/10 (%.2f%%)\t- $name-MEM\n", $memory_scores{$name}, $memory_pct);
+}
+print "Total score: $total_score\n";
+
+# Calculate avg values
+my $sum_time = 0;
+my $sum_memory = 0;
+my $count = 0;
+
+foreach my $name (keys (%time_stat)) {
+	$sum_time += $time_stat{$name} / $time_stat_base{$name} * 100;
+	$sum_memory += $memory_stat{$name} / $memory_stat_base{$name} * 100;	
+	$count++;
+}
+
+my $average_time = $sum_time / $count;
+my $average_memory = $sum_memory / $count;
+
+# Print avg values
+print "\nLEADERBOARD STAT\n";
+print "================\n";
+printf ("Average Execution Time: %.2f %%\n", $average_time);
+printf ("Average Memory Usage: %.2f %%\n", $average_memory);

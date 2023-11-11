@@ -90,11 +90,11 @@ timer_elapsed (int64_t then) {
 /* Suspends execution for approximately TICKS timer ticks. */
 void
 timer_sleep (int64_t ticks) {
-	int64_t start = timer_ticks ();
+	int64_t now = timer_ticks ();
 
 	ASSERT (intr_get_level () == INTR_ON);
-	while (timer_elapsed (start) < ticks)
-		thread_yield ();
+	
+	sleep_until(now + ticks);
 }
 
 /* Suspends execution for approximately MS milliseconds. */
@@ -126,6 +126,29 @@ static void
 timer_interrupt (struct intr_frame *args UNUSED) {
 	ticks++;
 	thread_tick ();
+
+#ifdef USERPROG
+	update_stat ();
+#endif
+
+	if (thread_mlfqs) {
+		increase_curr_recent_cpu();
+		if (ticks % TIMER_FREQ == 0){
+			calc_load_avg();
+			calc_recent_cpu_all();
+
+		} 
+		
+		if (ticks % 4 == 0) {
+			calc_priority_all();
+			thread_yield_with_priority();
+		}
+	}
+
+	if(get_next_wakeup() <= ticks){
+		awake_threads(ticks);
+		thread_yield_with_priority ();
+	}
 }
 
 /* Returns true if LOOPS iterations waits for more than one timer

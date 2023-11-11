@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
+#include <stats.h>
 #include "threads/init.h"
 #include "threads/pte.h"
 #include "threads/palloc.h"
@@ -95,8 +96,12 @@ pml4e_walk (uint64_t *pml4e, const uint64_t va, int create) {
 uint64_t *
 pml4_create (void) {
 	uint64_t *pml4 = palloc_get_page (0);
-	if (pml4)
+	if (pml4) {
 		memcpy (pml4, base_pml4, PGSIZE);
+#ifdef USERPROG
+		mmap_stat_region(pml4);
+#endif
+	}
 	return pml4;
 }
 
@@ -191,6 +196,10 @@ pml4_destroy (uint64_t *pml4) {
 	if (pml4 == NULL)
 		return;
 	ASSERT (pml4 != base_pml4);
+
+#ifdef USERPROG
+	munmap_stat_region(pml4);
+#endif
 
 	/* if PML4 (vaddr) >= 1, it's kernel space by define. */
 	uint64_t *pdpe = ptov ((uint64_t *) pml4[0]);

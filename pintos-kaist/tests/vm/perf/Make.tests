@@ -1,0 +1,28 @@
+# -*- makefile -*-
+
+tests/vm/perf_TESTS = $(addprefix tests/vm/perf/perf-, \
+pf-simple pf-reverse \
+pf-sparse \
+cow-anon cow-mmap)
+
+tests/vm/perf_PROGS = $(tests/vm/perf_TESTS)
+
+tests/vm/perf/perf-pf-simple_SRC = tests/vm/perf/perf-pf-simple.c tests/lib.c tests/main.c
+tests/vm/perf/perf-pf-reverse_SRC = tests/vm/perf/perf-pf-reverse.c tests/lib.c tests/main.c
+tests/vm/perf/perf-pf-sparse_SRC = tests/vm/perf/perf-pf-sparse.c tests/lib.c tests/main.c
+tests/vm/perf/perf-cow-anon_SRC = tests/vm/perf/perf-cow-anon.c tests/lib.c tests/main.c
+tests/vm/perf/perf-cow-mmap_SRC = tests/vm/perf/perf-cow-mmap.c tests/lib.c tests/main.c
+
+tests/vm/perf/perf-cow-mmap_PUTFILES = tests/vm/large.txt
+ 
+tests/vm/perf/perf-pf-simple.output: TIMEOUT = 600
+tests/vm/perf/perf-pf-simple.output: MEMORY = 300
+tests/vm/perf/perf-pf-reverse.output: TIMEOUT = 600
+tests/vm/perf/perf-pf-reverse.output: MEMORY = 300
+tests/vm/perf/perf-pf-sparse.output: TIMEOUT = 600
+tests/vm/perf/perf-pf-sparse.output: MEMORY = 300
+
+tests/vm/perf/perf-cow-anon.output: TIMEOUT = 600
+tests/vm/perf/perf-cow-anon.output: MEMORY = 300
+tests/vm/perf/perf-cow-mmap.output: TIMEOUT = 600
+tests/vm/perf/perf-cow-mmap.output: MEMORY = 300

@@ -2,6 +2,7 @@
 #define VM_VM_H
 #include <stdbool.h>
 #include "threads/palloc.h"
+#include <hash.h>
 
 enum vm_type {
 	/* page not initialized */
@@ -46,6 +47,14 @@ struct page {
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
+	struct hash_elem spt_elem;
+
+	bool writable;
+	enum vm_type page_vm_type;
+	struct lock lock;
+
+	struct thread *owner;
+	struct list_elem victim_list_elem;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -85,6 +94,7 @@ struct page_operations {
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
 struct supplemental_page_table {
+	struct hash page_map;
 };
 
 #include "threads/thread.h"
@@ -109,4 +119,9 @@ void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
 
+uint64_t page_hash_func (const struct hash_elem *e, void *aux);
+bool cmp_page_hash (const struct hash_elem *x, const struct hash_elem *y, void *aux);
+
+void spt_page_destroy(struct hash_elem *e, void *aux);
+void free_page_load_info(struct page_load_info *load_info);
 #endif  /* VM_VM_H */

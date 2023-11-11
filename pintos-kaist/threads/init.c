@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stats.h>
 #include "devices/kbd.h"
 #include "devices/input.h"
 #include "devices/serial.h"
@@ -162,6 +163,10 @@ paging_init (uint64_t mem_end) {
 		if ((pte = pml4e_walk (pml4, va, 1)) != NULL)
 			*pte = pa | perm;
 	}
+
+#ifdef USERPROG
+	init_stat_region();
+#endif
 
 	// reload cr3
 	pml4_activate(0);
